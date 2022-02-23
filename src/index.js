@@ -2,17 +2,17 @@
  * react-native-swiper
  * @author leecade<leecade@163.com>
  */
-import React, { Component } from 'react'
 import PropTypes from 'prop-types'
+import React, { Component } from 'react'
 import {
-  Text,
-  View,
-  ViewPropTypes,
-  ScrollView,
+  ActivityIndicator,
   Dimensions,
-  TouchableOpacity,
+  I18nManager,
   Platform,
-  ActivityIndicator
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native'
 
 /**
@@ -48,7 +48,12 @@ const styles = {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent'
+    backgroundColor: 'transparent',
+    ...Platform.select({
+      android: {
+        flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row'
+      }
+    })
   },
 
   pagination_y: {
@@ -85,7 +90,12 @@ const styles = {
     paddingHorizontal: 10,
     paddingVertical: 10,
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    ...Platform.select({
+      android: {
+        flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row'
+      }
+    })
   },
 
   buttonText: {
@@ -249,7 +259,7 @@ export default class extends Component {
 
     // Support Optional render page
     initState.children = Array.isArray(props.children)
-      ? props.children.filter(child => child)
+      ? props.children.filter((child) => child)
       : props.children
 
     initState.total = initState.children ? initState.children.length || 1 : 0
@@ -258,8 +268,13 @@ export default class extends Component {
       // retain the index
       initState.index = state.index
     } else {
-      initState.index =
-        initState.total > 1 ? Math.min(props.index, initState.total - 1) : 0
+      if (Platform.OS === 'android' && I18nManager.isRTL) {
+        initState.index =
+          initState.total > 1 ? Math.max(props.index, initState.total - 1) : 0
+      } else {
+        initState.index =
+          initState.total > 1 ? Math.min(props.index, initState.total - 1) : 0
+      }
     }
 
     // Default: horizontal
@@ -284,7 +299,9 @@ export default class extends Component {
     }
 
     initState.offset[initState.dir] =
-      initState.dir === 'y' ? initState.height * props.index : initState.width * props.index
+      initState.dir === 'y'
+        ? initState.height * props.index
+        : initState.width * props.index
 
     this.internals = {
       ...this.internals,
@@ -298,7 +315,7 @@ export default class extends Component {
     return Object.assign({}, this.state, this.internals)
   }
 
-  onLayout = event => {
+  onLayout = (event) => {
     const { width, height } = event.nativeEvent.layout
     const offset = (this.internals.offset = {})
     const state = { width, height }
@@ -321,10 +338,10 @@ export default class extends Component {
     // related to https://github.com/leecade/react-native-swiper/issues/570
     // contentOffset is not working in react 0.48.x so we need to use scrollTo
     // to emulate offset.
-    if(this.state.total > 1) {
+    if (this.state.total > 1) {
       this.scrollView.scrollTo({ ...offset, animated: false })
     }
-	
+
     if (this.initialRender) {
       this.initialRender = false
     }
@@ -398,7 +415,7 @@ export default class extends Component {
    * Scroll begin handle
    * @param  {object} e native event
    */
-  onScrollBegin = e => {
+  onScrollBegin = (e) => {
     // update scroll state
     this.internals.isScrolling = true
     this.props.onScrollBeginDrag &&
@@ -409,7 +426,7 @@ export default class extends Component {
    * Scroll end handle
    * @param  {object} e native event
    */
-  onScrollEnd = e => {
+  onScrollEnd = (e) => {
     // update scroll state
     this.internals.isScrolling = false
 
@@ -439,7 +456,7 @@ export default class extends Component {
    * Drag end handle
    * @param {object} e native event
    */
-  onScrollEndDrag = e => {
+  onScrollEndDrag = (e) => {
     const { contentOffset } = e.nativeEvent
     const { horizontal } = this.props
     const { children, index } = this.state
@@ -619,7 +636,7 @@ export default class extends Component {
         prop !== 'onScrollBeginDrag'
       ) {
         let originResponder = props[prop]
-        overrides[prop] = e => originResponder(e, this.fullState(), this)
+        overrides[prop] = (e) => originResponder(e, this.fullState(), this)
       }
     }
 
@@ -704,7 +721,11 @@ export default class extends Component {
     let button = null
 
     if (this.props.loop || this.state.index !== this.state.total - 1) {
-      button = this.props.nextButton || <Text style={styles.buttonText}>›</Text>
+      button = this.props.nextButton || (
+        <Text style={styles.buttonText}>
+          {Platform.OS !== 'android' && I18nManager.isRTL ? '‹' : '›'}
+        </Text>
+      )
     }
 
     return (
@@ -722,6 +743,13 @@ export default class extends Component {
 
     if (this.props.loop || this.state.index !== 0) {
       button = this.props.prevButton || <Text style={styles.buttonText}>‹</Text>
+      button = this.props.prevButton || (
+        <Text style={styles.buttonText}>
+          {Platform.OS !== 'android' && I18nManager.isRTL !== 'android'
+            ? '›'
+            : '‹'}
+        </Text>
+      )
     }
 
     return (
@@ -753,11 +781,11 @@ export default class extends Component {
     )
   }
 
-  refScrollView = view => {
+  refScrollView = (view) => {
     this.scrollView = view
   }
 
-  onPageScrollStateChanged = state => {
+  onPageScrollStateChanged = (state) => {
     switch (state) {
       case 'dragging':
         return this.onScrollBegin()
@@ -768,7 +796,7 @@ export default class extends Component {
     }
   }
 
-  renderScrollView = pages => {
+  renderScrollView = (pages) => {
     return (
       <ScrollView
         ref={this.refScrollView}
@@ -781,7 +809,7 @@ export default class extends Component {
         onScrollEndDrag={this.onScrollEndDrag}
         style={this.props.scrollViewStyle}
       >
-        {pages}
+        {I18nManager.isRTL ? pages.reverse() : pages}
       </ScrollView>
     )
   }
